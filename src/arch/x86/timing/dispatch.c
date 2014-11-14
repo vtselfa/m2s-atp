@@ -75,6 +75,7 @@ static int X86ThreadDispatch(X86Thread *self, int quantum)
 		stall = X86ThreadCanDispatch(self);
 		if (stall != x86_dispatch_stall_used)
 		{
+			self->dispatch_stall[stall] += quantum;
 			core->dispatch_stall[stall] += quantum;
 			break;
 		}

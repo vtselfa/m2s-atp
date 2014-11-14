@@ -23,7 +23,7 @@
 #include <arch/x86/emu/uinst.h>
 #include <lib/util/class.h>
 
-
+#include "core.h"
 
 /*
  * Class 'X86Thread'
@@ -94,6 +94,7 @@ CLASS_BEGIN(X86Thread, Object)
 	long long last_commit_cycle;
 
 	/* Statistics */
+	long long dispatch_stall[x86_dispatch_stall_max];
 	long long num_fetched_uinst;
 	long long num_dispatched_uinst_array[x86_uinst_opcode_count];
 	long long num_issued_uinst_array[x86_uinst_opcode_count];

@@ -629,6 +629,11 @@ void X86CpuDumpSummary(Timing *self, FILE *f)
 			core->dispatch_stall[x86_dispatch_stall_##NAME]); \
 }
 
+#define DUMP_THREAD_DISPATCH_STAT(NAME) { \
+	fprintf(f, "Dispatch.Stall." #NAME " = %lld\n", \
+			thread->dispatch_stall[x86_dispatch_stall_##NAME]); \
+}
+
 #define DUMP_CORE_STRUCT_STATS(NAME, ITEM) { \
 	fprintf(f, #NAME ".Size = %d\n", (int) x86_##ITEM##_size * x86_cpu_num_threads); \
 	if (x86_cpu_occupancy_stats) \
@@ -877,6 +882,25 @@ void X86CpuDumpReport(X86Cpu *self, FILE *f)
 			fprintf(f, "; Dispatch stage\n");
 			X86CpuDumpUopReport(self, f, thread->num_dispatched_uinst_array,
 					"Dispatch", x86_cpu_dispatch_width);
+
+			/* Dispatch slots */
+			if (x86_cpu_dispatch_kind == x86_cpu_dispatch_kind_timeslice)
+			{
+				fprintf(f, "; Dispatch slots usage (sum = cycles * dispatch width)\n");
+				fprintf(f, ";    used - dispatch slot was used by a non-spec uop\n");
+				fprintf(f, ";    spec - used by a mispeculated uop\n");
+				fprintf(f, ";    ctx - no context allocated to thread\n");
+				fprintf(f, ";    uopq,rob,iq,lsq,rename - no space in structure\n");
+				DUMP_THREAD_DISPATCH_STAT(used);
+				DUMP_THREAD_DISPATCH_STAT(spec);
+				DUMP_THREAD_DISPATCH_STAT(uop_queue);
+				DUMP_THREAD_DISPATCH_STAT(rob);
+				DUMP_THREAD_DISPATCH_STAT(iq);
+				DUMP_THREAD_DISPATCH_STAT(lsq);
+				DUMP_THREAD_DISPATCH_STAT(rename);
+				DUMP_THREAD_DISPATCH_STAT(ctx);
+				fprintf(f, "\n");
+			}
 
 			/* Issue stage */
 			fprintf(f, "; Issue stage\n");
