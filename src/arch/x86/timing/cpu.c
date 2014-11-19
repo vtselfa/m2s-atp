@@ -624,7 +624,7 @@ void X86CpuDumpSummary(Timing *self, FILE *f)
 }
 
 
-#define DUMP_DISPATCH_STAT(NAME) { \
+#define DUMP_CORE_DISPATCH_STAT(NAME) { \
 	fprintf(f, "Dispatch.Stall." #NAME " = %lld\n", \
 			core->dispatch_stall[x86_dispatch_stall_##NAME]); \
 }
@@ -810,14 +810,14 @@ void X86CpuDumpReport(X86Cpu *self, FILE *f)
 			fprintf(f, ";    spec - used by a mispeculated uop\n");
 			fprintf(f, ";    ctx - no context allocated to thread\n");
 			fprintf(f, ";    uopq,rob,iq,lsq,rename - no space in structure\n");
-			DUMP_DISPATCH_STAT(used);
-			DUMP_DISPATCH_STAT(spec);
-			DUMP_DISPATCH_STAT(uop_queue);
-			DUMP_DISPATCH_STAT(rob);
-			DUMP_DISPATCH_STAT(iq);
-			DUMP_DISPATCH_STAT(lsq);
-			DUMP_DISPATCH_STAT(rename);
-			DUMP_DISPATCH_STAT(ctx);
+			DUMP_CORE_DISPATCH_STAT(used);
+			DUMP_CORE_DISPATCH_STAT(spec);
+			DUMP_CORE_DISPATCH_STAT(uop_queue);
+			DUMP_CORE_DISPATCH_STAT(rob);
+			DUMP_CORE_DISPATCH_STAT(iq);
+			DUMP_CORE_DISPATCH_STAT(lsq);
+			DUMP_CORE_DISPATCH_STAT(rename);
+			DUMP_CORE_DISPATCH_STAT(ctx);
 			fprintf(f, "\n");
 		}
 
