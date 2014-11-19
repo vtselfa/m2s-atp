@@ -32,10 +32,12 @@
 
 struct str_map_t prefetcher_type_map =
 {
-	3, {
+	5, {
 		{ "GHB_PC_CS", prefetcher_type_ghb_pc_cs },
 		{ "GHB_PC_DC", prefetcher_type_ghb_pc_dc },
 		{ "GHB_CZ_CS", prefetcher_type_ghb_cz_cs },
+		{ "OBL", prefetcher_type_obl },
+		{ "TAG", prefetcher_type_tag },
 	}
 };
 
@@ -462,6 +464,13 @@ void prefetcher_access_miss(struct mod_stack_t *stack, struct mod_t *target_mod)
 	if (target_mod->kind != mod_kind_cache || !target_mod->cache->prefetcher)
 		return;
 
+	if (target_mod->cache->prefetcher->type == prefetcher_type_obl ||
+			target_mod->cache->prefetcher->type == prefetcher_type_tag)
+	{
+		prefetcher_do_prefetch(target_mod, stack, stack->addr + target_mod->block_size);
+		return;
+	}
+
 	it_index = prefetcher_update_tables(stack, target_mod);
 
 	if (it_index < 0)
@@ -493,15 +502,21 @@ void prefetcher_access_hit(struct mod_stack_t *stack, struct mod_t *target_mod)
 
 	if (mod_block_get_prefetched(target_mod, stack->addr))
 	{
-		/* This block was prefetched. Now it has a real access. For the purposes
-		 * of the prefetcher heuristic, this is still a miss. Hence, update
-		 * the prefetcher tables. */
-		it_index = prefetcher_update_tables(stack, target_mod);
-
 		/* Clear the prefetched flag since we have a real access now */
 		mem_debug ("  addr 0x%x %s : clearing \"prefetched\" flag\n",
 			   stack->addr, target_mod->name);
 		mod_block_set_prefetched(target_mod, stack->addr, 0);
+
+		if (target_mod->cache->prefetcher->type == prefetcher_type_tag)
+		{
+			prefetcher_do_prefetch(target_mod, stack, stack->addr + target_mod->block_size);
+			return;
+		}
+
+		/* This block was prefetched. Now it has a real access. For the purposes
+		 * of the prefetcher heuristic, this is still a miss. Hence, update
+		 * the prefetcher tables. */
+		it_index = prefetcher_update_tables(stack, target_mod);
 
 		if (it_index < 0)
 			return;

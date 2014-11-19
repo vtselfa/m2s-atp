@@ -35,6 +35,8 @@ enum prefetcher_type_t
 	prefetcher_type_ghb_pc_cs,
 	prefetcher_type_ghb_pc_dc,
 	prefetcher_type_ghb_cz_cs,
+	prefetcher_type_obl,
+	prefetcher_type_tag,
 };
 
 /* Doesn't really make sense to have a big lookup depth */
