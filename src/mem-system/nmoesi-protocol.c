@@ -369,7 +369,7 @@ void mod_handler_nmoesi_store(int event, void *data)
 
 	if (event == EV_MOD_NMOESI_STORE_LOCK)
 	{
-		struct mod_stack_t *older_stack;
+		/* struct mod_stack_t *older_stack; */
 
 		mem_debug("  %lld %lld 0x%x %s store lock\n", esim_time, stack->id,
 			stack->addr, mod->name);
@@ -377,14 +377,14 @@ void mod_handler_nmoesi_store(int event, void *data)
 			stack->id, mod->name);
 
 		/* If there is any older access, wait for it */
-		older_stack = stack->access_list_prev;
-		if (older_stack)
-		{
-			mem_debug("    %lld wait for access %lld\n",
-				stack->id, older_stack->id);
-			mod_stack_wait_in_stack(stack, older_stack, EV_MOD_NMOESI_STORE_LOCK);
-			return;
-		}
+		/* older_stack = stack->access_list_prev; */
+		/* if (older_stack) */
+		/* { */
+		/* 	mem_debug("    %lld wait for access %lld\n", */
+		/* 		stack->id, older_stack->id); */
+		/* 	mod_stack_wait_in_stack(stack, older_stack, EV_MOD_NMOESI_STORE_LOCK); */
+		/* 	return; */
+		/* } */
 
 		/* Call find and lock */
 		new_stack = mod_stack_create(stack->id, mod, stack->addr,
