@@ -453,7 +453,7 @@ void X86CpuCreate(X86Cpu *self, X86Emu *emu)
 
 	/* Parent */
 	TimingCreate(asTiming(self));
-	
+
 	/* Frequency */
 	asTiming(self)->frequency = x86_cpu_frequency;
 	asTiming(self)->frequency_domain = esim_new_domain(x86_cpu_frequency);
@@ -531,7 +531,7 @@ void X86CpuDump(Object *self, FILE *f)
 
 	int i;
 	int j;
-	
+
 	/* General information */
 	fprintf(f, "\n");
 	fprintf(f, "LastDump = %lld   ; Cycle of last dump\n", cpu->last_dump);
@@ -548,7 +548,7 @@ void X86CpuDump(Object *self, FILE *f)
 		fprintf(f, "-------\n");
 		fprintf(f, "Core %d\n", core->id);
 		fprintf(f, "-------\n\n");
-		
+
 		fprintf(f, "Event Queue:\n");
 		x86_uop_linked_list_dump(core->event_queue, f);
 
@@ -562,7 +562,7 @@ void X86CpuDump(Object *self, FILE *f)
 			fprintf(f, "----------------------\n");
 			fprintf(f, "Thread %d (in core %d)\n", j, i);
 			fprintf(f, "----------------------\n\n");
-			
+
 			fprintf(f, "Fetch queue:\n");
 			x86_uop_list_dump(thread->fetch_queue, f);
 
@@ -581,7 +581,7 @@ void X86CpuDump(Object *self, FILE *f)
 			X86ThreadDumpRegFile(thread, f);
 			if (thread->ctx)
 				fprintf(f, "MappedContext = %d\n", thread->ctx->pid);
-			
+
 			fprintf(f, "\n");
 		}
 	}

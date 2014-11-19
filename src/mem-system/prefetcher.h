@@ -21,10 +21,10 @@
 #define MEM_SYSTEM_PREFETCHER_H
 
 
-/* 
+/*
  * This file implements a global history buffer
  * based prefetcher. Refer to the 2005 paper by
- * Nesbit and Smith. 
+ * Nesbit and Smith.
  */
 
 extern struct str_map_t prefetcher_type_map;

@@ -37,6 +37,7 @@ struct str_map_t prefetcher_type_map =
 	}
 };
 
+
 struct prefetcher_t *prefetcher_create(int prefetcher_ghb_size, int prefetcher_it_size,
 				       int prefetcher_lookup_depth, enum prefetcher_type_t type)
 {
@@ -58,6 +59,7 @@ struct prefetcher_t *prefetcher_create(int prefetcher_ghb_size, int prefetcher_i
 	/* Return */
 	return pref;
 }
+
 
 void prefetcher_free(struct prefetcher_t *pref)
 {
@@ -187,6 +189,7 @@ static int prefetcher_update_tables(struct mod_stack_t *stack, struct mod_t *tar
 	return it_index;
 }
 
+
 static void prefetcher_do_prefetch(struct mod_t *mod, struct mod_stack_t *stack,
 				   unsigned int prefetch_addr)
 {
@@ -214,7 +217,7 @@ static void prefetcher_do_prefetch(struct mod_t *mod, struct mod_stack_t *stack,
 	if (set1 == set2 && tag1 == tag2)
 		return;
 
-	/* I'm not passing back the mod_client_info structure. If this needs to be 
+	/* I'm not passing back the mod_client_info structure. If this needs to be
 	 * passed in the future, make sure a copy is made (since the one that is
 	 * pointed to by stack->client_info may be freed early. */
 	mem_debug("  miss_addr 0x%x, prefetch_addr 0x%x, %s : prefetcher\n", stack->addr,
@@ -300,7 +303,7 @@ static void prefetcher_ghb_pc_dc(struct mod_t *mod, struct mod_stack_t *stack, i
 	chain = pref->index_table[it_index].ptr;
 
 	/* The lookup depth must be at least 2 - which essentially means
-	 * two strides have been seen so far, predict the next stride. */ 
+	 * two strides have been seen so far, predict the next stride. */
 	assert(pref->lookup_depth >= 2 && pref->lookup_depth <= PREFETCHER_LOOKUP_DEPTH_MAX);
 
 	/* The table should've been updated before calling this function. */
@@ -330,7 +333,7 @@ static void prefetcher_ghb_pc_dc(struct mod_t *mod, struct mod_stack_t *stack, i
 	 * Try to match the stride array starting from here. */
 	while (chain != -1)
 	{
-		/* This really doesn't look realistic to implement in 
+		/* This really doesn't look realistic to implement in
 		 * hardware. Too much time consuming I feel. */
 		chain2 = chain;
 		for (i = 0; i < pref->lookup_depth; i++)
@@ -352,7 +355,7 @@ static void prefetcher_ghb_pc_dc(struct mod_t *mod, struct mod_stack_t *stack, i
 		if (i == pref->lookup_depth)
 		{
 		    cur_addr = pref->ghb[chain].addr;
-		    assert(pref->ghb[chain].prev != -1 && 
+		    assert(pref->ghb[chain].prev != -1 &&
 			   pref->ghb[chain].prev_it_ghb == prefetcher_ptr_ghb);
 		    chain = pref->ghb[chain].prev;
 		    prev_addr = pref->ghb[chain].addr;
@@ -367,6 +370,7 @@ static void prefetcher_ghb_pc_dc(struct mod_t *mod, struct mod_stack_t *stack, i
 	if (prefetch_addr > 0)
 		prefetcher_do_prefetch(mod, stack, prefetch_addr);
 }
+
 
 void prefetcher_access_miss(struct mod_stack_t *stack, struct mod_t *target_mod)
 {
@@ -395,6 +399,7 @@ void prefetcher_access_miss(struct mod_stack_t *stack, struct mod_t *target_mod)
 	}
 }
 
+
 void prefetcher_access_hit(struct mod_stack_t *stack, struct mod_t *target_mod)
 {
 	int it_index;
@@ -410,7 +415,7 @@ void prefetcher_access_hit(struct mod_stack_t *stack, struct mod_t *target_mod)
 		it_index = prefetcher_update_tables(stack, target_mod);
 
 		/* Clear the prefetched flag since we have a real access now */
-		mem_debug ("  addr 0x%x %s : clearing \"prefetched\" flag\n", 
+		mem_debug ("  addr 0x%x %s : clearing \"prefetched\" flag\n",
 			   stack->addr, target_mod->name);
 		mod_block_set_prefetched(target_mod, stack->addr, 0);
 
