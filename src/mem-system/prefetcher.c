@@ -21,6 +21,7 @@
 
 #include <lib/mhandle/mhandle.h>
 #include <lib/util/debug.h>
+#include <lib/util/misc.h>
 #include <lib/util/string.h>
 
 #include "mem-system.h"
@@ -31,9 +32,10 @@
 
 struct str_map_t prefetcher_type_map =
 {
-	2, {
+	3, {
 		{ "GHB_PC_CS", prefetcher_type_ghb_pc_cs },
 		{ "GHB_PC_DC", prefetcher_type_ghb_pc_dc },
+		{ "GHB_CZ_CS", prefetcher_type_ghb_cz_cs },
 	}
 };
 
@@ -56,6 +58,19 @@ struct prefetcher_t *prefetcher_create(int prefetcher_ghb_size, int prefetcher_i
 	pref->index_table = xcalloc(prefetcher_it_size, sizeof(struct prefetcher_it_t));
 	pref->ghb_head = -1;
 
+	for (int i = 0; i < prefetcher_it_size; i++)
+	{
+		pref->index_table[i].tag = -1;
+		pref->index_table[i].ptr = -1;
+	}
+
+	for (int i = 0; i < prefetcher_ghb_size; i++)
+	{
+		pref->ghb[i].addr = -1;
+		pref->ghb[i].next = -1;
+		pref->ghb[i].prev = -1;
+	}
+
 	/* Return */
 	return pref;
 }
@@ -68,19 +83,62 @@ void prefetcher_free(struct prefetcher_t *pref)
 	free(pref);
 }
 
-static void get_it_index_tag(struct prefetcher_t *pref, struct mod_stack_t *stack, 
+
+int prefetcher_uses_pc_indexed_ghb(struct prefetcher_t *pref)
+{
+	if (!pref) return 0;
+	switch(pref->type)
+	{
+		case prefetcher_type_ghb_pc_cs:
+		case prefetcher_type_ghb_pc_dc:
+			return 1;
+		default:
+			return 0;
+	}
+}
+
+
+int prefetcher_uses_czone_indexed_ghb(struct prefetcher_t *pref)
+{
+	if (!pref) return 0;
+	switch(pref->type)
+	{
+		case prefetcher_type_ghb_cz_cs:
+			return 1;
+		default:
+			return 0;
+	}
+}
+
+
+static int get_it_index_tag(struct prefetcher_t *pref, struct mod_stack_t *stack,
 			     int *it_index, unsigned *tag)
 {
-	if (stack->client_info)
+	/* CZONE */
+	if (prefetcher_uses_czone_indexed_ghb(pref))
 	{
-		*it_index = stack->client_info->prefetcher_eip % pref->it_size;
-		*tag = stack->client_info->prefetcher_eip;
+		const int czone_bits = 13;
+		PTR_ASSIGN(it_index, (stack->addr >> czone_bits) % pref->it_size);
+		PTR_ASSIGN(tag, stack->addr & ~((1 << czone_bits) - 1));
 	}
+
+	/* PC */
+	else if (prefetcher_uses_pc_indexed_ghb(pref))
+	{
+		/* No PC information */
+		if (!stack->client_info || stack->client_info->prefetcher_eip == -1)
+			return 0;
+		PTR_ASSIGN(it_index, stack->client_info->prefetcher_eip % pref->it_size);
+		PTR_ASSIGN(tag, stack->client_info->prefetcher_eip);
+	}
+
+	/* ERROR */
 	else
 	{
-		*it_index = -1;
-		*tag = 0;
+		fatal("%s: Invalid prefetcher type", __FUNCTION__);
 	}
+
+	return 1;
 }
 
 /* Returns it_index >= 0 if any valid update is made, negative otherwise. */
@@ -88,24 +146,21 @@ static int prefetcher_update_tables(struct mod_stack_t *stack, struct mod_t *tar
 {
 	struct prefetcher_t *pref = target_mod->cache->prefetcher;
 	int ghb_index;
-	unsigned int addr = stack->addr;
 	int it_index, prev;
 	unsigned it_tag;
 
 	assert(pref);
-    
-	/* Get the index table index */
-	get_it_index_tag(pref, stack, &it_index, &it_tag);
 
-	if (it_index < 0)
+	/* Get the index table index and test if is valid */
+	if(!get_it_index_tag(pref, stack, &it_index, &it_tag))
 		return -1;
 
-	assert(it_index < pref->it_size);
+	assert(it_index < pref->it_size && it_index >= 0);
 
 	ghb_index = (++(pref->ghb_head)) % pref->ghb_size;
 
 	/* Remove the current entry in ghb_index, if its valid */
-	if (pref->ghb[ghb_index].addr > 0)
+	if (pref->ghb[ghb_index].addr != -1) /* Implicit cast of -1 to unsigned (0xFFF...FFF) */
 	{
 		prev = pref->ghb[ghb_index].prev;
 
@@ -130,18 +185,18 @@ static int prefetcher_update_tables(struct mod_stack_t *stack, struct mod_t *tar
 			}
 		}
 	}
+	pref->ghb[ghb_index].addr = -1; /* Not necessary, it will be overwritten */
+	pref->ghb[ghb_index].next = -1; /* Same */
+	pref->ghb[ghb_index].prev = -1; /* Same */
 
-	pref->ghb[ghb_index].addr = 0;
-	pref->ghb[ghb_index].next = -1;
-	pref->ghb[ghb_index].prev = -1;
-
-	if (pref->index_table[it_index].tag > 0)
+	/* Index table entry is valid */
+	if (pref->index_table[it_index].tag != -1) /* Implicit cast of -1 to unsigned int */
 	{
-		/* Replace entry in index_table if necessary. */
+		/* Replace entry in index_table */
 		if (pref->index_table[it_index].tag != it_tag)
 		{
-			mem_debug("  %lld it_index = %d, old_tag = 0x%x, new_tag = 0x%x" 
-				  "prefetcher: replace index_table entry\n", stack->id, 
+			mem_debug("  %lld it_index = %d, old_tag = 0x%x, new_tag = 0x%x"
+				  "prefetcher: replace index_table entry\n", stack->id,
 				  it_index, pref->index_table[it_index].tag, it_tag);
 
 			prev = pref->index_table[it_index].ptr;
@@ -150,23 +205,25 @@ static int prefetcher_update_tables(struct mod_stack_t *stack, struct mod_t *tar
 			if (prev >= 0)
 			{
 				/* The element that this is pointing to must be pointing back. */
-				assert(pref->ghb[prev].prev_it_ghb == prefetcher_ptr_it && 
+				assert(pref->ghb[prev].prev_it_ghb == prefetcher_ptr_it &&
 				       pref->ghb[prev].prev == it_index);
 				pref->ghb[prev].prev = -1;
 			}
 
-			pref->index_table[it_index].tag = 0;
+			pref->index_table[it_index].tag = -1;
 			pref->index_table[it_index].ptr = -1;
 		}
 	}
+
+	/* Intex table entry is invalid */
 	else
 	{
-		/* Just an initialization. Tag == 0 implies the entry has never been used. */
+		/* Just an initialization. Tag == -1 implies the entry has never been used. */
 		pref->index_table[it_index].ptr = -1;
 	}
 
 	/* Add new element into ghb. */
-	pref->ghb[ghb_index].addr = addr;
+	pref->ghb[ghb_index].addr = stack->addr;
 	pref->ghb[ghb_index].next = pref->index_table[it_index].ptr;
 	if (pref->index_table[it_index].ptr >= 0)
 	{
@@ -195,7 +252,7 @@ static void prefetcher_do_prefetch(struct mod_t *mod, struct mod_stack_t *stack,
 {
 	int set1, tag1, set2, tag2;
 
-	assert(prefetch_addr > 0);
+	assert(prefetch_addr != -1);
 
 	/* Predicted prefetch_addr can go horribly wrong
 	 * sometimes. Since prefetches aren't supposed to
@@ -226,64 +283,90 @@ static void prefetcher_do_prefetch(struct mod_t *mod, struct mod_stack_t *stack,
 	mod_access(mod, mod_access_prefetch, prefetch_addr, NULL, NULL, NULL, NULL);
 }
 
-/* This function implements the GHB based PC/CS prefetching as described in the
- * 2005 paper by Nesbit and Smith. The index table lookup is based on the PC
- * of the instruction causing the miss. The GHB entries are looked at for finding
- * constant stride accesses. Based on this, prefetching is done. */
-static void prefetcher_ghb_pc_cs(struct mod_t *mod, struct mod_stack_t *stack, int it_index)
-{
-	struct prefetcher_t *pref;
-	int chain, stride, i;
-	unsigned int prev_addr, cur_addr, prefetch_addr = 0;
 
-	assert(mod->kind == mod_kind_cache && mod->cache != NULL);
-	pref = mod->cache->prefetcher;
+static int prefetcher_ghb_cs_find_stride(struct prefetcher_t *pref, int it_index)
+{
+	int stride;
+	int chain;
+	unsigned int prev_addr;
+	unsigned int cur_addr;
 
 	chain = pref->index_table[it_index].ptr;
 
 	/* The lookup depth must be at least 2 - which essentially means
-	 * two strides have been seen so far, prefetch for the next. 
+	 * two strides have been seen so far, prefetch for the next.
 	 * It doesn't really help to prefetch on a lookup of depth 1.
 	 * It is too low an accuracy and leads to lot of illegal and
 	 * redundant prefetches. Hence keeping the minimum at 2. */
 	assert(pref->lookup_depth >= 2);
 
-	/* The table should've been updated before calling this function. */
-	assert(pref->ghb[chain].addr == stack->addr);
-
 	/* If there's only one element in this linked list, nothing to do. */
 	if (pref->ghb[chain].next == -1)
-		return;
+		return 0;
 
 	prev_addr = pref->ghb[chain].addr;
 	chain = pref->ghb[chain].next;
 	cur_addr = pref->ghb[chain].addr;
 	stride = prev_addr - cur_addr;
 
-	for (i = 2; i <= pref->lookup_depth; i++)
+	for (int i = 2; i <= pref->lookup_depth; i++)
 	{
 		prev_addr = cur_addr;
 		chain = pref->ghb[chain].next;
 
 		/* The linked list (history) is smaller than the lookup depth */
 		if (chain == -1)
-			break;
+			goto no_stride;
 
 		cur_addr = pref->ghb[chain].addr;
 
 		/* The stride changed, can't prefetch */
 		if (stride != prev_addr - cur_addr)
-			break;
-
-		/* If this is the last iteration (we've seen as much history as
-		 * the lookup depth specified), then do a prefetch. */
-		if (i == pref->lookup_depth)
-			prefetch_addr = stack->addr + stride;
+			goto no_stride;
 	}
+	return stride;
 
-	if (prefetch_addr > 0)
-		prefetcher_do_prefetch(mod, stack, prefetch_addr);
+no_stride:
+	return 0;
 }
+
+
+/* This function implements the GHB based PC/CS prefetching as described in the
+ * 2005 paper by Nesbit and Smith. The index table lookup is based on the PC
+ * of the instruction causing the miss. The GHB entries are looked at for finding
+ * constant stride accesses. Based on this, prefetching is done. */
+static void prefetcher_ghb_pc_cs(struct mod_t *mod, struct mod_stack_t *stack, int it_index)
+{
+	int stride;
+	struct prefetcher_t *pref = mod->cache->prefetcher;
+
+	assert(mod->kind == mod_kind_cache && mod->cache != NULL);
+
+	/* The table should've been updated before calling this function. */
+	assert(pref->ghb[pref->index_table[it_index].ptr].addr == stack->addr);
+
+	stride = prefetcher_ghb_cs_find_stride(pref, it_index);
+
+	if (!stride)
+		return;
+
+	switch(pref->type)
+	{
+		case prefetcher_type_ghb_pc_cs:
+		case prefetcher_type_ghb_cz_cs:
+		{
+			prefetcher_do_prefetch(mod, stack, stack->addr + stride);
+			break;
+		}
+
+		default:
+		{
+			fatal("%s: Invalid prefetcher type", __FUNCTION__);
+			break;
+		}
+	}
+}
+
 
 /* This function implements the GHB based PC/DC prefetching as described in the
  * 2005 paper by Nesbit and Smith. The index table lookup is based on the PC
@@ -384,7 +467,8 @@ void prefetcher_access_miss(struct mod_stack_t *stack, struct mod_t *target_mod)
 	if (it_index < 0)
 		    return;
 
-	if (target_mod->cache->prefetcher->type == prefetcher_type_ghb_pc_cs)
+	if (target_mod->cache->prefetcher->type == prefetcher_type_ghb_pc_cs ||
+			target_mod->cache->prefetcher->type == prefetcher_type_ghb_cz_cs)
 	{
 		/* Perform ghb based PC/CS prefetching
 		 * (Program Counter based index, Constant Stride) */
@@ -422,7 +506,8 @@ void prefetcher_access_hit(struct mod_stack_t *stack, struct mod_t *target_mod)
 		if (it_index < 0)
 			return;
 
-		if (target_mod->cache->prefetcher->type == prefetcher_type_ghb_pc_cs)
+		if (target_mod->cache->prefetcher->type == prefetcher_type_ghb_pc_cs ||
+				target_mod->cache->prefetcher->type == prefetcher_type_ghb_cz_cs)
 		{
 			/* Perform ghb based PC/CS prefetching
 			 * (Program Counter based index, Constant Stride) */
