@@ -512,6 +512,8 @@ void prefetcher_access_hit(struct mod_stack_t *stack, struct mod_t *target_mod)
 			prefetcher_do_prefetch(target_mod, stack, stack->addr + target_mod->block_size);
 			return;
 		}
+		else if (target_mod->cache->prefetcher->type == prefetcher_type_obl)
+			return;
 
 		/* This block was prefetched. Now it has a real access. For the purposes
 		 * of the prefetcher heuristic, this is still a miss. Hence, update
