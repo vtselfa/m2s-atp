@@ -1026,6 +1026,17 @@ int X86CpuRun(Timing *self)
 	if (x86_emu_max_cycles && self->cycle >= x86_emu_max_cycles)
 		esim_finish = esim_finish_x86_max_cycles;
 
+	/* Stop if minimum number of instructions has been exceeded by all contexts */
+	if(x86_emu_min_inst_per_ctx)
+	{
+		X86Context *ctx;
+		for (ctx = emu->context_list_head; ctx; ctx = ctx->context_list_next)
+			if (!X86ContextGetState(ctx, X86ContextFinished | X86ContextZombie) && ctx->inst_count < x86_emu_min_inst_per_ctx)
+				break;
+		if(!ctx)
+			esim_finish = esim_finish_x86_min_inst_per_ctx;
+	}
+
 	/* Stop if any previous reason met */
 	if (esim_finish)
 		return TRUE;

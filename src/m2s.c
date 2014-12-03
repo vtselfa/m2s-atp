@@ -812,6 +812,18 @@ static void m2s_read_command_line(int *argc_ptr, char **argv)
 			continue;
 		}
 
+		/* Minimum number of instructions per context */
+		if (!strcmp(argv[argi], "--x86-min-inst-per-ctx"))
+		{
+			m2s_need_argument(argc, argv, argi);
+			x86_emu_min_inst_per_ctx = str_to_llint(argv[argi + 1], &err);
+			if (err)
+				fatal("option %s, value '%s': %s", argv[argi],
+						argv[argi + 1], str_error(err));
+			argi++;
+			continue;
+		}
+
 		/* File name to save checkpoint */
 		if (!strcmp(argv[argi], "--x86-save-checkpoint"))
 		{
