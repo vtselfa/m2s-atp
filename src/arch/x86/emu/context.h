@@ -64,7 +64,7 @@ typedef enum
 
 
 CLASS_BEGIN(X86Context, Object)
-	
+
 	/* Emulator it belongs to */
 	X86Emu *emu;
 

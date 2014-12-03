@@ -1592,9 +1592,9 @@ static void m2s_read_command_line(int *argc_ptr, char **argv)
 	if (*si_gpu_dump_default_config_file_name && argc > 3)
 		fatal("option '--si-dump-default-config' is incompatible with any other options.");
 	if (*evg_opengl_disasm_file_name && argc != 4)
-		fatal("option '--evg-disasm-opengl' is incompatible with any other options.");	
+		fatal("option '--evg-disasm-opengl' is incompatible with any other options.");
 	if (*si_opengl_disasm_file_name && argc != 4)
-		fatal("option '--si-disasm-opengl' is incompatible with any other options.");	
+		fatal("option '--si-disasm-opengl' is incompatible with any other options.");
 	if (*frm_disasm_file_name && argc > 3)
 		fatal("option '--frm-disasm' is incompatible with any other options.");
 	if (*x86_disasm_file_name && argc > 3)
