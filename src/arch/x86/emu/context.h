@@ -196,6 +196,10 @@ CLASS_BEGIN(X86Context, Object)
 
 	/* Number of non-speculate micro-instructions.
 	 * Updated by the architectural simulator at the commit stage. */
+	long long uinst_count;
+
+	/* Number of non-speculate instructions.
+	 * Updated by the architectural simulator at the commit stage. */
 	long long inst_count;
 
 CLASS_END(X86Context)

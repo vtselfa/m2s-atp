@@ -135,11 +135,14 @@ void X86ThreadCommit(X86Thread *self, int quant)
 		core->num_committed_uinst_array[uop->uinst->opcode]++;
 		cpu->num_committed_uinst_array[uop->uinst->opcode]++;
 		cpu->num_committed_uinst++;
-		ctx->inst_count++;
+		ctx->uinst_count++;
 		if (uop->trace_cache)
 			self->trace_cache->num_committed_uinst++;
 		if (!uop->mop_index)
+		{
 			cpu->num_committed_inst++;
+			ctx->inst_count++;
+		}
 		if (uop->flags & X86_UINST_CTRL)
 		{
 			self->num_branch_uinst++;
