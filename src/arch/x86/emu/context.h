@@ -191,6 +191,9 @@ CLASS_BEGIN(X86Context, Object)
 	/* Thread affinity mask */
 	struct bit_map_t *affinity;
 
+	/* If the option --min-inst-per ctx is used,
+	 * this flag marks if this ctx has reached the minimum of instructions. */
+	int min_inst_reached : 1;
 
 	/* Statistics */
 
