@@ -30,6 +30,7 @@
 #include <lib/util/misc.h>
 #include <lib/util/string.h>
 #include <lib/util/timer.h>
+#include <mem-system/mem-system.h>
 #include <mem-system/memory.h>
 
 #include "bpred.h"
@@ -1038,7 +1039,7 @@ int X86CpuRun(Timing *self)
 			esim_finish = esim_finish_x86_min_inst_per_ctx;
 	}
 
-	/* Print cpu report when a context reaches the minimum number of instructions */
+	/* Print reports when a context reaches the minimum number of instructions */
 	if(x86_emu_min_inst_per_ctx)
 	{
 		X86Context *ctx;
@@ -1050,10 +1051,20 @@ int X86CpuRun(Timing *self)
 			{
 				FILE *f;
 				char tmp[MAX_PATH_SIZE];
+
+				/* Print x86 report */
 				snprintf(tmp, MAX_PATH_SIZE, "%s.pid%d", x86_cpu_report_file_name, ctx->pid);
 				if ((f = file_open_for_write(tmp)))
 				{
 					X86CpuDumpReport(cpu, f, ctx->core_index, ctx->thread_index);
+					fclose(f);
+				}
+
+				/* Print mem report */
+				snprintf(tmp, MAX_PATH_SIZE, "%s.pid%d", mem_report_file_name, ctx->pid);
+				if ((f = file_open_for_write(tmp)))
+				{
+					mem_system_dump_report(f);
 					fclose(f);
 				}
 				ctx->min_inst_reached = 1;

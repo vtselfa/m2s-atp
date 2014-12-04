@@ -315,29 +315,30 @@ void mem_system_init(void)
 
 void mem_system_done(void)
 {
+	FILE *f;
+
+	/* Open file */
+	f = file_open_for_write(mem_report_file_name);
+	if (!f)
+		return;
+
 	/* Dump report */
-	mem_system_dump_report();
+	mem_system_dump_report(f);
+	fclose(f);
 
 	/* Free memory system */
 	mem_system_free(mem_system);
 }
 
 
-void mem_system_dump_report(void)
+void mem_system_dump_report(FILE *f)
 {
 	struct net_t *net;
 	struct mod_t *mod;
 	struct cache_t *cache;
 
-	FILE *f;
-
 	int i;
 
-	/* Open file */
-	f = file_open_for_write(mem_report_file_name);
-	if (!f)
-		return;
-	
 	/* Intro */
 	fprintf(f, "; Report for caches, TLBs, and main memory\n");
 	fprintf(f, ";    Accesses - Total number of accesses\n");
