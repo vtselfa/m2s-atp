@@ -49,7 +49,7 @@ CLASS_BEGIN(X86Emu, Emu)
 	/* Counter of times that a context has been suspended in a
 	 * futex. Used for FIFO wakeups. */
 	long long futex_sleep_count;
-	
+
 	/* Flag set to force a call to the scheduler 'x86_cpu_schedule()' in the
 	 * beginning of next cycle. This flag is set any time a context changes its
 	 * state in any bit other than 'spec_mode'. It can be set anywhere in the
@@ -116,6 +116,7 @@ extern X86Emu *x86_emu;
 
 extern long long x86_emu_max_cycles;
 extern long long x86_emu_max_inst;
+extern long long x86_emu_min_inst_per_ctx;
 extern char x86_emu_last_inst_bytes[20];
 extern int x86_emu_last_inst_size;
 extern int x86_emu_process_prefetch_hints;

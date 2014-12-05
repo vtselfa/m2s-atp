@@ -30,6 +30,7 @@
 #include <lib/util/misc.h>
 #include <lib/util/string.h>
 #include <lib/util/timer.h>
+#include <mem-system/mem-system.h>
 #include <mem-system/memory.h>
 
 #include "bpred.h"
@@ -508,7 +509,7 @@ void X86CpuDestroy(X86Cpu *self)
 	f = file_open_for_write(x86_cpu_report_file_name);
 	if (f)
 	{
-		X86CpuDumpReport(self, f);
+		X86CpuDumpReport(self, f, 0, 0);
 		fclose(f);
 	}
 
@@ -733,7 +734,7 @@ static void X86DumpCpuConfig(FILE *f)
 }
 
 
-void X86CpuDumpReport(X86Cpu *self, FILE *f)
+void X86CpuDumpReport(X86Cpu *self, FILE *f, int start_core, int start_thread)
 {
 	X86Emu *emu = self->emu;
 	X86Core *core;
@@ -741,8 +742,8 @@ void X86CpuDumpReport(X86Cpu *self, FILE *f)
 
 	long long now;
 
-	int i;
-	int j;
+	assert(start_core >= 0 && start_core < x86_cpu_num_cores);
+	assert(start_thread >= 0 && start_thread < x86_cpu_num_threads);
 
 	/* Get CPU timer value */
 	now = m2s_timer_get_value(asEmu(emu)->timer);
@@ -792,10 +793,10 @@ void X86CpuDumpReport(X86Cpu *self, FILE *f)
 	fprintf(f, "\n");
 
 	/* Report for each core */
-	for (i = 0; i < x86_cpu_num_cores; i++)
+	for (int i = start_core; i < x86_cpu_num_cores + start_core; i++)
 	{
 		/* Core */
-		core = self->cores[i];
+		core = self->cores[i % x86_cpu_num_cores];
 		fprintf(f, "\n; Statistics for core %d\n", core->id);
 		fprintf(f, "[ c%d ]\n\n", core->id);
 
@@ -871,9 +872,10 @@ void X86CpuDumpReport(X86Cpu *self, FILE *f)
 		fprintf(f, "\n");
 
 		/* Report for each thread */
-		for (j = 0; j < x86_cpu_num_threads; j++)
+		start_thread = i == start_core ? start_thread : 0; /* Only in the first printed core */
+		for (int j = start_thread; j < x86_cpu_num_threads + start_thread; j++)
 		{
-			thread = core->threads[j];
+			thread = core->threads[j % x86_cpu_num_threads];
 			fprintf(f, "\n; Statistics for core %d - thread %d\n",
 					core->id, thread->id_in_core);
 			fprintf(f, "[ %s ]\n\n", thread->name);
@@ -1025,6 +1027,50 @@ int X86CpuRun(Timing *self)
 	/* Stop if maximum number of cycles exceeded */
 	if (x86_emu_max_cycles && self->cycle >= x86_emu_max_cycles)
 		esim_finish = esim_finish_x86_max_cycles;
+
+	/* Stop if minimum number of instructions has been exceeded by all contexts */
+	if(x86_emu_min_inst_per_ctx)
+	{
+		X86Context *ctx;
+		for (ctx = emu->context_list_head; ctx; ctx = ctx->context_list_next)
+			if (!X86ContextGetState(ctx, X86ContextFinished | X86ContextZombie) && ctx->inst_count < x86_emu_min_inst_per_ctx)
+				break;
+		if(!ctx)
+			esim_finish = esim_finish_x86_min_inst_per_ctx;
+	}
+
+	/* Print reports when a context reaches the minimum number of instructions */
+	if(x86_emu_min_inst_per_ctx)
+	{
+		X86Context *ctx;
+		for (ctx = emu->context_list_head; ctx; ctx = ctx->context_list_next)
+		{
+			if (!X86ContextGetState(ctx, X86ContextFinished | X86ContextZombie) &&
+					ctx->inst_count > x86_emu_min_inst_per_ctx &&
+					!ctx->min_inst_reached)
+			{
+				FILE *f;
+				char tmp[MAX_PATH_SIZE];
+
+				/* Print x86 report */
+				snprintf(tmp, MAX_PATH_SIZE, "%s.pid%d", x86_cpu_report_file_name, ctx->pid);
+				if ((f = file_open_for_write(tmp)))
+				{
+					X86CpuDumpReport(cpu, f, ctx->core_index, ctx->thread_index);
+					fclose(f);
+				}
+
+				/* Print mem report */
+				snprintf(tmp, MAX_PATH_SIZE, "%s.pid%d", mem_report_file_name, ctx->pid);
+				if ((f = file_open_for_write(tmp)))
+				{
+					mem_system_dump_report(f);
+					fclose(f);
+				}
+				ctx->min_inst_reached = 1;
+			}
+		}
+	}
 
 	/* Stop if any previous reason met */
 	if (esim_finish)

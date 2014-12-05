@@ -83,7 +83,7 @@ int X86ThreadCanCommit(X86Thread *self)
 			uop->ready = 1;
 		return uop->ready;
 	}
-	
+
 	/* Instructions other than stores must be completed. */
 	return uop->completed;
 }
@@ -107,16 +107,16 @@ void X86ThreadCommit(X86Thread *self, int quant)
 		assert(x86_uop_exists(uop));
 		assert(uop->thread == self);
 		assert(!recover);
-		
+
 		/* Mispredicted branch */
 		if (x86_cpu_recover_kind == x86_cpu_recover_kind_commit &&
 			(uop->flags & X86_UINST_CTRL) && uop->neip != uop->pred_neip)
 			recover = 1;
-	
+
 		/* Free physical registers */
 		assert(!uop->specmode);
 		X86ThreadCommitUop(self, uop);
-		
+
 		/* Branches update branch predictor and btb */
 		if (uop->flags & X86_UINST_CTRL)
 		{
@@ -128,18 +128,21 @@ void X86ThreadCommit(X86Thread *self, int quant)
 		/* Trace cache */
 		if (x86_trace_cache_present)
 			X86ThreadRecordUopInTraceCache(self, uop);
-			
+
 		/* Statistics */
 		self->last_commit_cycle = asTiming(cpu)->cycle;
 		self->num_committed_uinst_array[uop->uinst->opcode]++;
 		core->num_committed_uinst_array[uop->uinst->opcode]++;
 		cpu->num_committed_uinst_array[uop->uinst->opcode]++;
 		cpu->num_committed_uinst++;
-		ctx->inst_count++;
+		ctx->uinst_count++;
 		if (uop->trace_cache)
 			self->trace_cache->num_committed_uinst++;
 		if (!uop->mop_index)
+		{
 			cpu->num_committed_inst++;
+			ctx->inst_count++;
+		}
 		if (uop->flags & X86_UINST_CTRL)
 		{
 			self->num_branch_uinst++;
@@ -216,20 +219,20 @@ void X86CoreCommit(X86Core *self)
 				pass--;
 		}
 		break;
-	
+
 	case x86_cpu_commit_kind_timeslice:
-	
+
 		/* look for a not empty VB */
 		new = (self->commit_current + 1) % x86_cpu_num_threads;
 		while (new != self->commit_current &&
 				!X86ThreadCanCommit(self->threads[new]))
 			new = (new + 1) % x86_cpu_num_threads;
-		
+
 		/* Commit new thread */
 		self->commit_current = new;
 		X86ThreadCommit(self->threads[new], x86_cpu_commit_width);
 		break;
-	
+
 	}
 }
 

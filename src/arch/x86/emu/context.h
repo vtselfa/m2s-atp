@@ -64,7 +64,7 @@ typedef enum
 
 
 CLASS_BEGIN(X86Context, Object)
-	
+
 	/* Emulator it belongs to */
 	X86Emu *emu;
 
@@ -191,10 +191,17 @@ CLASS_BEGIN(X86Context, Object)
 	/* Thread affinity mask */
 	struct bit_map_t *affinity;
 
+	/* If the option --min-inst-per ctx is used,
+	 * this flag marks if this ctx has reached the minimum of instructions. */
+	int min_inst_reached : 1;
 
 	/* Statistics */
 
 	/* Number of non-speculate micro-instructions.
+	 * Updated by the architectural simulator at the commit stage. */
+	long long uinst_count;
+
+	/* Number of non-speculate instructions.
 	 * Updated by the architectural simulator at the commit stage. */
 	long long inst_count;
 

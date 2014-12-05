@@ -53,7 +53,7 @@ CLASS_BEGIN(X86Cpu, Timing)
 	 * execution quantum has expired. These variables are updated by calling
 	 * 'x86_cpu_update_min_alloc_cycle' */
 	long long min_alloc_cycle;
-	
+
 	/* List containing uops that need to report an 'end_inst' trace event */
 	struct linked_list_t *uop_trace_list;
 
@@ -82,7 +82,7 @@ void X86CpuDestroy(X86Cpu *self);
 
 void X86CpuDump(Object *self, FILE *f);
 void X86CpuDumpSummary(Timing *self, FILE *f);
-void X86CpuDumpReport(X86Cpu *self, FILE *f);
+void X86CpuDumpReport(X86Cpu *self, FILE *f, int start_core, int start_thread); /* Print report starting from start_core and start_thread and then round robin */
 void X86CpuDumpUopReport(X86Cpu *self, FILE *f, long long *uop_stats,
 		char *prefix, int peak_ipc);
 

@@ -73,7 +73,7 @@ extern struct mem_system_t *mem_system;
 void mem_system_init(void);
 void mem_system_done(void);
 
-void mem_system_dump_report(void);
+void mem_system_dump_report(FILE *f);
 
 struct mod_t *mem_system_get_mod(char *mod_name);
 struct net_t *mem_system_get_net(char *net_name);

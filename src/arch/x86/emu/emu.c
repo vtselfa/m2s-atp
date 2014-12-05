@@ -51,6 +51,7 @@
 /* Configuration parameters */
 long long x86_emu_max_inst = 0;
 long long x86_emu_max_cycles = 0;
+long long x86_emu_min_inst_per_ctx = 0;
 char x86_emu_last_inst_bytes[20];
 int x86_emu_last_inst_size = 0;
 int x86_emu_process_prefetch_hints = 0;
@@ -94,7 +95,7 @@ void X86EmuDestroy(X86Emu *self)
 	/* Free contexts */
 	while (self->context_list_head)
 		delete(self->context_list_head);
-	
+
 }
 
 
@@ -142,7 +143,7 @@ void X86EmuProcessEvents(X86Emu *self)
 {
 	X86Context *ctx, *next;
 	long long now = esim_real_time();
-	
+
 	/* Check if events need actually be checked. */
 	pthread_mutex_lock(&self->process_events_mutex);
 	if (!self->process_events_force)
@@ -150,7 +151,7 @@ void X86EmuProcessEvents(X86Emu *self)
 		pthread_mutex_unlock(&self->process_events_mutex);
 		return;
 	}
-	
+
 	/* By default, no subsequent call to 'X86EmuProcessEvents' is assumed */
 	self->process_events_force = 0;
 
@@ -407,7 +408,7 @@ void X86EmuProcessEvents(X86Emu *self)
 				pbuf = ctx->regs->ecx;
 				count = ctx->regs->edx;
 				buf = xmalloc(count);
-				
+
 				count = read(fd->host_fd, buf, count);
 				if (count < 0)
 					fatal("syscall 'read': unexpected error in host 'read'");
@@ -551,7 +552,7 @@ void X86EmuProcessEvents(X86Emu *self)
 		X86ContextCheckSignalHandler(ctx);
 	}
 
-	
+
 	/* Unlock */
 	pthread_mutex_unlock(&self->process_events_mutex);
 }
