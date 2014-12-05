@@ -242,6 +242,8 @@ void mod_handler_nmoesi_load(int event, void *data)
 		/* The prefetcher may be interested in this miss */
 		prefetcher_access_miss(stack, mod);
 
+		mod->real_misses++;
+
 		return;
 	}
 
@@ -446,6 +448,8 @@ void mod_handler_nmoesi_store(int event, void *data)
 
 		/* The prefetcher may be interested in this miss */
 		prefetcher_access_miss(stack, mod);
+
+		mod->real_misses++;
 
 		return;
 	}
@@ -1801,6 +1805,8 @@ void mod_handler_nmoesi_read_request(int event, void *data)
 			/* The prefetcher may be interested in this miss */
 			prefetcher_access_miss(stack, target_mod);
 
+			target_mod->real_misses++;
+
 		}
 		return;
 	}
@@ -2395,6 +2401,8 @@ void mod_handler_nmoesi_write_request(int event, void *data)
 			{
 				/* The prefetcher may be interested in this miss */
 				prefetcher_access_miss(stack, target_mod);
+
+				target_mod->real_misses++;
 			}
 		}
 		else

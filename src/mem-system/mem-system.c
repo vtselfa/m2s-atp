@@ -425,6 +425,8 @@ void mem_system_dump_report(void)
 		fprintf(f, "NoRetryNCWriteHits = %lld\n", mod->no_retry_nc_write_hits);
 		fprintf(f, "NoRetryNCWriteMisses = %lld\n", mod->no_retry_nc_writes
 			- mod->no_retry_nc_write_hits);
+		fprintf(f, "\n%s.RealMisses = %lld\n", mod->name, mod->real_misses);
+                fprintf(f, "%s.RealMisses+Evictions = %lld\n", mod->name, mod->real_misses + mod->evictions);
 		fprintf(f, "\n\n");
 	}
 

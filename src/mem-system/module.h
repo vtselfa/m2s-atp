@@ -231,6 +231,8 @@ struct mod_t
 	long long no_retry_write_hits;
 	long long no_retry_nc_writes;
 	long long no_retry_nc_write_hits;
+
+	long long real_misses;
 };
 
 struct mod_t *mod_create(char *name, enum mod_kind_t kind, int num_ports,
