@@ -1046,7 +1046,7 @@ int X86CpuRun(Timing *self)
 		for (ctx = emu->context_list_head; ctx; ctx = ctx->context_list_next)
 		{
 			if (!X86ContextGetState(ctx, X86ContextFinished | X86ContextZombie) &&
-					ctx->inst_count > x86_emu_min_inst_per_ctx &&
+					ctx->inst_count >= x86_emu_min_inst_per_ctx &&
 					!ctx->min_inst_reached)
 			{
 				FILE *f;
