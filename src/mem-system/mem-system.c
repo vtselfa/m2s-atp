@@ -437,9 +437,6 @@ void mem_system_dump_report(FILE *f)
 		net = list_get(mem_system->net_list, i);
 		net_dump_report(net, f);
 	}
-	
-	/* Done */
-	fclose(f);
 }
 
 
