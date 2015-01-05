@@ -301,11 +301,15 @@ static void X86ThreadFetch(X86Thread *self)
 	block = self->fetch_neip & ~(self->inst_mod->block_size - 1);
 	if (block != self->fetch_block)
 	{
+		/* create and fill the mod_client_info_t object */
+		struct mod_client_info_t *client_info = mod_client_info_create(self->inst_mod);
+		client_info->thread = self;
+
 		phy_addr = mmu_translate(self->ctx->address_space_index, self->fetch_neip);
 		self->fetch_block = block;
 		self->fetch_address = phy_addr;
 		self->fetch_access = mod_access(self->inst_mod,
-			mod_access_load, phy_addr, NULL, NULL, NULL, NULL);
+			mod_access_load, phy_addr, NULL, NULL, NULL, client_info);
 		self->btb_reads++;
 
 		/* MMU statistics */

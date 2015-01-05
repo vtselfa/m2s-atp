@@ -695,9 +695,26 @@ struct mod_client_info_t *mod_client_info_create(struct mod_t *mod)
 	/* Create object */
 	client_info = repos_create_object(mod->client_info_repos);
 
+	client_info->prefetcher_eip = -1;
+
 	/* Return */
 	return client_info;
 }
+
+
+struct mod_client_info_t *mod_client_info_clone(struct mod_t *mod, struct mod_client_info_t *original)
+{
+	struct mod_client_info_t *client_info;
+
+	/* Create object */
+	client_info = repos_create_object(mod->client_info_repos);
+
+	*client_info = *original;
+
+	/* Return */
+	return client_info;
+}
+
 
 void mod_client_info_free(struct mod_t *mod, struct mod_client_info_t *client_info)
 {

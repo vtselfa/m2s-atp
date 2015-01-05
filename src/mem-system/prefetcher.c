@@ -253,7 +253,7 @@ static void prefetcher_do_prefetch(struct mod_t *mod, struct mod_stack_t *stack,
 				   unsigned int prefetch_addr)
 {
 	int set1, tag1, set2, tag2;
-
+	struct mod_client_info_t *client_info;
 	assert(prefetch_addr != -1);
 
 	/* Predicted prefetch_addr can go horribly wrong
@@ -282,7 +282,10 @@ static void prefetcher_do_prefetch(struct mod_t *mod, struct mod_stack_t *stack,
 	mem_debug("  miss_addr 0x%x, prefetch_addr 0x%x, %s : prefetcher\n", stack->addr,
 		  prefetch_addr, mod->name);
 
-	mod_access(mod, mod_access_prefetch, prefetch_addr, NULL, NULL, NULL, NULL);
+	client_info = mod_client_info_clone(mod, stack->client_info);
+	client_info->prefetcher_eip = -1;
+
+	mod_access(mod, mod_access_prefetch, prefetch_addr, NULL, NULL, NULL, client_info);
 }
 
 

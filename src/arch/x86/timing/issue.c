@@ -70,6 +70,7 @@ static int X86ThreadIssueSQ(X86Thread *self, int quantum)
 
 		/* create and fill the mod_client_info_t object */
 		client_info = mod_client_info_create(self->data_mod);
+		client_info->thread = self;
 		client_info->prefetcher_eip = store->eip;
 
 		/* Issue store */
@@ -142,6 +143,7 @@ static int X86ThreadIssueLQ(X86Thread *self, int quant)
 
 		/* create and fill the mod_client_info_t object */
 		client_info = mod_client_info_create(self->data_mod);
+		client_info->thread = self;
 		client_info->prefetcher_eip = load->eip;
 
 		/* Access memory system */
@@ -191,6 +193,7 @@ static int X86ThreadIssuePreQ(X86Thread *self, int quantum)
 
 	struct linked_list_t *preq = self->preq;
 	struct x86_uop_t *prefetch;
+	struct mod_client_info_t *client_info;
 
 	/* Process preq */
 	linked_list_head(preq);
@@ -233,9 +236,13 @@ static int X86ThreadIssuePreQ(X86Thread *self, int quantum)
 		assert(prefetch->uinst->opcode == x86_uinst_prefetch);
 		X86ThreadRemovePreQ(self);
 
+		/* create and fill the mod_client_info_t object */
+		client_info = mod_client_info_create(self->data_mod);
+		client_info->thread = self;
+
 		/* Access memory system */
 		mod_access(self->data_mod, mod_access_prefetch,
-			prefetch->phy_addr, NULL, core->event_queue, prefetch, NULL);
+			prefetch->phy_addr, NULL, core->event_queue, prefetch, client_info);
 
 		/* Record prefetched address */
 		prefetch_history_record(core->prefetch_history, prefetch->phy_addr);

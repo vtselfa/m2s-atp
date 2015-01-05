@@ -22,6 +22,8 @@
 
 #include <stdio.h>
 
+#include <arch/x86/timing/thread.h>
+
 
 /* Port */
 struct mod_port_t
@@ -67,6 +69,7 @@ struct mod_client_info_t
 {
 	/* This field is for use by the prefetcher. It is set
 	 * to the PC of the instruction accessing the module */
+	X86Thread *thread;
 	unsigned int prefetcher_eip;
 };
 
@@ -279,6 +282,7 @@ void mod_coalesce(struct mod_t *mod, struct mod_stack_t *master_stack,
 	struct mod_stack_t *stack);
 
 struct mod_client_info_t *mod_client_info_create(struct mod_t *mod);
+struct mod_client_info_t *mod_client_info_clone(struct mod_t *mod, struct mod_client_info_t *original);
 void mod_client_info_free(struct mod_t *mod, struct mod_client_info_t *client_info);
 
 #endif
