@@ -55,16 +55,16 @@ static int X86ThreadCanFetch(X86Thread *self)
 	/* Context must be running */
 	if (!ctx || !X86ContextGetState(ctx, X86ContextRunning))
 		return 0;
-	
+
 	/* Fetch stalled or context evict signal activated */
 	if (self->fetch_stall_until >= asTiming(cpu)->cycle || ctx->evict_signal)
 		return 0;
-	
+
 	/* Fetch queue must have not exceeded the limit of stored bytes
 	 * to be able to store new macro-instructions. */
 	if (self->fetchq_occ >= x86_fetch_queue_size)
 		return 0;
-	
+
 	/* If the next fetch address belongs to a new block, cache system
 	 * must be accessible to read it. */
 	block = self->fetch_neip & ~(self->inst_mod->block_size - 1);
@@ -75,7 +75,7 @@ static int X86ThreadCanFetch(X86Thread *self)
 		if (!mod_can_access(self->inst_mod, phy_addr))
 			return 0;
 	}
-	
+
 	/* We can fetch */
 	return 1;
 }
@@ -239,7 +239,7 @@ static int X86ThreadFetchTraceCache(X86Thread *self)
 	assert(x86_trace_cache_present);
 	if (self->trace_cache_queue_occ >= x86_trace_cache_queue_size)
 		return 0;
-	
+
 	/* Access BTB, branch predictor, and trace cache */
 	eip_branch = X86ThreadGetNextBranch(self,
 			self->fetch_neip, self->inst_mod->block_size);
@@ -249,14 +249,14 @@ static int X86ThreadFetchTraceCache(X86Thread *self)
 			&mop_count, &mop_array, &neip);
 	if (!hit)
 		return 0;
-	
+
 	/* Fetch instruction in trace cache line. */
 	for (i = 0; i < mop_count; i++)
 	{
 		/* If instruction caused context to suspend or finish */
 		if (!X86ContextGetState(self->ctx, X86ContextRunning))
 			break;
-		
+
 		/* Insert decoded uops into the trace cache queue. In the simulation,
 		 * the uop is inserted into the fetch queue, but its occupancy is not
 		 * increased. */
@@ -295,7 +295,7 @@ static void X86ThreadFetch(X86Thread *self)
 	/* Try to fetch from trace cache first */
 	if (x86_trace_cache_present && X86ThreadFetchTraceCache(self))
 		return;
-	
+
 	/* If new block to fetch is not the same as the previously fetched (and stored)
 	 * block, access the instruction cache. */
 	block = self->fetch_neip & ~(self->inst_mod->block_size - 1);
@@ -323,11 +323,11 @@ static void X86ThreadFetch(X86Thread *self)
 		/* If instruction caused context to suspend or finish */
 		if (!X86ContextGetState(ctx, X86ContextRunning))
 			break;
-	
+
 		/* If fetch queue full, stop fetching */
 		if (self->fetchq_occ >= x86_fetch_queue_size)
 			break;
-		
+
 		/* Insert macro-instruction into the fetch queue. Since the macro-instruction
 		 * information is only available at this point, we use it to decode
 		 * instruction now and insert uops into the fetch queue. However, the
@@ -396,7 +396,7 @@ static void X86CoreFetch(X86Core *self)
 		}
 		break;
 	}
-	
+
 	case x86_cpu_fetch_kind_switchonevent:
 	{
 		int must_switch;
@@ -430,7 +430,7 @@ static void X86CoreFetch(X86Core *self)
 				new_thread = self->threads[new_index];
 				if (!X86ThreadCanFetch(new_thread))
 					continue;
-					
+
 				/* Choose it if we need to switch */
 				if (must_switch)
 					break;
@@ -444,7 +444,7 @@ static void X86CoreFetch(X86Core *self)
 				if (!X86ThreadLongLatencyInEventQueue(new_thread))
 					break;
 			}
-				
+
 			/* Thread switch successful? */
 			if (new_index != thread->id_in_core)
 			{
@@ -463,7 +463,7 @@ static void X86CoreFetch(X86Core *self)
 	}
 
 	default:
-		
+
 		panic("%s: wrong fetch policy", __FUNCTION__);
 	}
 }

@@ -94,7 +94,7 @@ CLASS_BEGIN(X86Core, Object)
 	long long num_squashed_uinst;
 	long long num_branch_uinst;
 	long long num_mispred_branch_uinst;
-	
+
 	/* Statistics for shared structures */
 	long long rob_occupancy;
 	long long rob_full;
@@ -122,7 +122,7 @@ CLASS_BEGIN(X86Core, Object)
 	long long reg_file_fp_full;
 	long long reg_file_fp_reads;
 	long long reg_file_fp_writes;
-	
+
 	long long reg_file_xmm_occupancy;
 	long long reg_file_xmm_full;
 	long long reg_file_xmm_reads;

@@ -106,7 +106,7 @@ void mod_dump(struct mod_t *mod, FILE *f)
  * Variable 'witness', if specified, will be increased when the access completes.
  * The function returns a unique access ID.
  */
-long long mod_access(struct mod_t *mod, enum mod_access_kind_t access_kind, 
+long long mod_access(struct mod_t *mod, enum mod_access_kind_t access_kind,
 	unsigned int addr, int *witness_ptr, struct linked_list_t *event_queue,
 	void *event_queue_item, struct mod_client_info_t *client_info)
 {
@@ -143,7 +143,7 @@ long long mod_access(struct mod_t *mod, enum mod_access_kind_t access_kind,
 		{
 			event = EV_MOD_NMOESI_PREFETCH;
 		}
-		else 
+		else
 		{
 			panic("%s: invalid access kind", __FUNCTION__);
 		}
@@ -223,7 +223,7 @@ int mod_find_block(struct mod_t *mod, unsigned int addr, int *set_ptr,
 	{
 		set = (tag >> cache->log_block_size) % cache->num_sets;
 	}
-	else 
+	else
 	{
 		panic("%s: invalid range kind (%d)", __FUNCTION__, mod->range_kind);
 	}
@@ -298,13 +298,13 @@ void mod_lock_port(struct mod_t *mod, struct mod_stack_t *stack, int event)
 	{
 		assert(!DOUBLE_LINKED_LIST_MEMBER(mod, port_waiting, stack));
 
-		/* If the request to lock the port is down-up, give it priority since 
+		/* If the request to lock the port is down-up, give it priority since
 		 * it is possibly holding up a large portion of the memory hierarchy */
 		if (stack->request_dir == mod_request_down_up)
 		{
 			DOUBLE_LINKED_LIST_INSERT_HEAD(mod, port_waiting, stack);
 		}
-		else 
+		else
 		{
 			DOUBLE_LINKED_LIST_INSERT_TAIL(mod, port_waiting, stack);
 		}
@@ -687,6 +687,7 @@ void mod_coalesce(struct mod_t *mod, struct mod_stack_t *master_stack,
 	/* Record in-flight coalesced access in module */
 	mod->access_list_coalesced_count++;
 }
+
 
 struct mod_client_info_t *mod_client_info_create(struct mod_t *mod)
 {

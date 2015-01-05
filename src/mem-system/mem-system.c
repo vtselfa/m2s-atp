@@ -113,7 +113,7 @@ void mem_system_init(void)
 	if (mem_config_file_name && *mem_config_file_name && !count)
 		fatal("memory configuration file given, but no timing simulation.\n%s",
 				mem_err_timing);
-	
+
 	/* Create trace category. This needs to be done before reading the
 	 * memory configuration file with 'mem_config_read', since the latter
 	 * function generates the trace headers. */
@@ -158,7 +158,7 @@ void mem_system_init(void)
 			mem_domain_index, "mod_nmoesi_store_unlock");
 	EV_MOD_NMOESI_STORE_FINISH = esim_register_event_with_name(mod_handler_nmoesi_store,
 			mem_domain_index, "mod_nmoesi_store_finish");
-	
+
 	EV_MOD_NMOESI_NC_STORE = esim_register_event_with_name(mod_handler_nmoesi_nc_store,
 			mem_domain_index, "mod_nmoesi_nc_store");
 	EV_MOD_NMOESI_NC_STORE_LOCK = esim_register_event_with_name(mod_handler_nmoesi_nc_store,
@@ -355,7 +355,7 @@ void mem_system_dump_report(FILE *f)
 	fprintf(f, ";    BlockingReads, BlockingWrites, BlockingNCWrites - Reads/writes coming from lower-level cache\n");
 	fprintf(f, ";    NonBlockingReads, NonBlockingWrites, NonBlockingNCWrites - Coming from upper-level cache\n");
 	fprintf(f, "\n\n");
-	
+
 	/* Report for each cache */
 	for (i = 0; i < list_count(mem_system->mod_list); i++)
 	{
@@ -382,7 +382,7 @@ void mem_system_dump_report(FILE *f)
 		fprintf(f, "HitRatio = %.4g\n", mod->accesses ?
 			(double) mod->hits / mod->accesses : 0.0);
 		fprintf(f, "Evictions = %lld\n", mod->evictions);
-		fprintf(f, "Retries = %lld\n", mod->read_retries + mod->write_retries + 
+		fprintf(f, "Retries = %lld\n", mod->read_retries + mod->write_retries +
 			mod->nc_write_retries);
 		fprintf(f, "\n");
 		fprintf(f, "Reads = %lld\n", mod->reads);

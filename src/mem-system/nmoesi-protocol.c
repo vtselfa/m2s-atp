@@ -126,7 +126,6 @@ void mod_handler_nmoesi_load(int event, void *data)
 {
 	struct mod_stack_t *stack = data;
 	struct mod_stack_t *new_stack;
-
 	struct mod_t *mod = stack->mod;
 
 
