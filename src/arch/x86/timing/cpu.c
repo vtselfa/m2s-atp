@@ -60,6 +60,9 @@
  */
 
 
+X86Cpu *x86_cpu;
+
+
 /* Help message */
 
 char *x86_config_help =

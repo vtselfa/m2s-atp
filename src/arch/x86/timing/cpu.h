@@ -103,6 +103,9 @@ void X86CpuUpdateOccupancyStats(X86Cpu *self);
  */
 
 #define x86_cpu_error_debug(...) debug(x86_cpu_error_debug_category, __VA_ARGS__)
+
+extern X86Cpu *x86_cpu;
+
 extern int x86_cpu_error_debug_category;
 
 extern char *x86_config_help;
