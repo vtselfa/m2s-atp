@@ -319,13 +319,12 @@ void mem_system_done(void)
 
 	/* Open file */
 	f = file_open_for_write(mem_report_file_name);
-	if (!f)
-		return;
-
-	/* Dump report */
-	mem_system_dump_report(f);
-	fclose(f);
-
+	if (f)
+	{
+		/* Dump report */
+		mem_system_dump_report(f);
+		fclose(f);
+	}
 	/* Free memory system */
 	mem_system_free(mem_system);
 }
