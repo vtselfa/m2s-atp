@@ -18,6 +18,7 @@
 
 #include <assert.h>
 
+#include <arch/x86/timing/cpu.h>
 #include <lib/esim/esim.h>
 #include <lib/mhandle/mhandle.h>
 #include <lib/util/debug.h>
@@ -78,6 +79,9 @@ struct mod_t *mod_create(char *name, enum mod_kind_t kind, int num_ports,
 
 	mod->client_info_repos = repos_create(sizeof(struct mod_client_info_t), mod->name);
 
+	/* Threads that can reach this module */
+	mod->reachable_threads = xcalloc(x86_cpu_num_cores * x86_cpu_num_threads, sizeof(char));
+
 	return mod;
 }
 
@@ -92,6 +96,7 @@ void mod_free(struct mod_t *mod)
 		dir_free(mod->dir);
 	free(mod->ports);
 	repos_free(mod->client_info_repos);
+	free(mod->reachable_threads);
 	free(mod->name);
 	free(mod);
 }

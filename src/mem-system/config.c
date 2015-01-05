@@ -19,6 +19,7 @@
 
 #include <arch/common/arch.h>
 #include <arch/southern-islands/timing/gpu.h>
+#include <arch/x86/timing/cpu.h>
 #include <lib/esim/esim.h>
 #include <lib/esim/trace.h>
 #include <lib/mhandle/mhandle.h>
@@ -1503,6 +1504,46 @@ static void mem_config_read_commands(struct config_t *config)
 }
 
 
+/* Set in each module the threads that can access it */
+static void mem_config_x86_thread_reachability()
+{
+	struct list_t *stack = list_create();
+
+	if (arch_x86->sim_kind != arch_sim_kind_detailed)
+		return;
+
+	for (int c = 0; c < x86_cpu_num_cores; c++)
+		for (int t = 0; t < x86_cpu_num_threads; t++)
+		{
+			X86Thread *thread = x86_cpu->cores[c]->threads[t];
+			thread->data_mod->reachable_threads[c * x86_cpu_num_threads + t] = 1;
+			thread->inst_mod->reachable_threads[c * x86_cpu_num_threads + t] = 1;
+			list_push(stack, thread->data_mod);
+			list_push(stack, thread->inst_mod);
+		}
+
+	/* Process pending modules */
+	while (list_count(stack))
+	{
+		struct mod_t *mod = list_pop(stack);
+		LINKED_LIST_FOR_EACH(mod->low_mod_list)
+		{
+			struct mod_t *low_mod = linked_list_get(mod->low_mod_list);
+			int or = 0; /* For assertions only */
+			for (int i = 0; i < x86_cpu_num_cores * x86_cpu_num_threads; i++)
+			{
+				or |= mod->reachable_threads[i];
+				low_mod->reachable_threads[i] |= mod->reachable_threads[i];
+			}
+			assert(or); /* At least is reachable by one thread */
+
+			list_push(stack, low_mod);
+		}
+	}
+	list_free(stack);
+}
+
+
 
 
 /*
@@ -1569,6 +1610,9 @@ void mem_config_read(void)
 
 	/* Compute cache levels relative to the CPU/GPU entry points */
 	mem_config_calculate_mod_levels();
+
+	/* Compute wich threads can access a given memory module */
+	mem_config_x86_thread_reachability();
 
 	/* Dump configuration to trace file */
 	mem_config_trace();

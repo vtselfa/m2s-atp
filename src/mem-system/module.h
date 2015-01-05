@@ -194,6 +194,10 @@ struct mod_t
 	 * memory hierarchy, the field is used to check this restriction. */
 	struct arch_t *arch;
 
+	/* Vector of booleans wich marks the threads that can reach
+	 * this module by its id in cpu . */
+	char *reachable_threads;
+
 	/* Statistics */
 	long long accesses;
 	long long hits;
