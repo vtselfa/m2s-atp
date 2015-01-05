@@ -194,6 +194,9 @@ struct mod_t
 	 * memory hierarchy, the field is used to check this restriction. */
 	struct arch_t *arch;
 
+	/* Alternate Tag Directory per thread */
+	struct atd_t **atd_per_thread;
+
 	/* Vector of booleans wich marks the threads that can reach
 	 * this module by its id in cpu . */
 	char *reachable_threads;

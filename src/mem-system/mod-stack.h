@@ -73,6 +73,7 @@ struct mod_stack_t
 	int tag;
 	int set;
 	int way;
+	int atd_way;
 	int state;
 
 	int src_set;
@@ -100,6 +101,7 @@ struct mod_stack_t
 
 	/* Flags */
 	int hit : 1;
+	int atd_hit : 1;
 	int err : 1;
 	int shared : 1;
 	int read : 1;

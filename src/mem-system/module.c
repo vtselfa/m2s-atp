@@ -27,6 +27,7 @@
 #include <lib/util/string.h>
 #include <lib/util/repos.h>
 
+#include "atd.h"
 #include "cache.h"
 #include "directory.h"
 #include "local-mem-protocol.h"
@@ -79,6 +80,9 @@ struct mod_t *mod_create(char *name, enum mod_kind_t kind, int num_ports,
 
 	mod->client_info_repos = repos_create(sizeof(struct mod_client_info_t), mod->name);
 
+	/* Alternate Tag Directory per thread */
+	mod->atd_per_thread = xcalloc(x86_cpu_num_cores * x86_cpu_num_threads, sizeof(struct adt_t *));
+
 	/* Threads that can reach this module */
 	mod->reachable_threads = xcalloc(x86_cpu_num_cores * x86_cpu_num_threads, sizeof(char));
 
@@ -96,7 +100,19 @@ void mod_free(struct mod_t *mod)
 		dir_free(mod->dir);
 	free(mod->ports);
 	repos_free(mod->client_info_repos);
+
 	free(mod->reachable_threads);
+
+	for (int c = 0; c < x86_cpu_num_cores; c++)
+	{
+		for (int t = 0; t < x86_cpu_num_threads; t++)
+		{
+			int thread_id_in_cpu = c * x86_cpu_num_threads + t;
+			atd_free(mod->atd_per_thread[thread_id_in_cpu]);
+		}
+	}
+	free(mod->atd_per_thread);
+
 	free(mod->name);
 	free(mod);
 }

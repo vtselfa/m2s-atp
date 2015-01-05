@@ -27,6 +27,7 @@
 #include <network/network.h>
 #include <network/node.h>
 
+#include "atd.h"
 #include "cache.h"
 #include "directory.h"
 #include "mem-system.h"
@@ -128,6 +129,10 @@ void mod_handler_nmoesi_load(int event, void *data)
 	struct mod_stack_t *new_stack;
 	struct mod_t *mod = stack->mod;
 
+	assert(stack->client_info);
+	assert(stack->client_info->thread);
+
+	const int thread_id_in_cpu = stack->client_info->thread->id_in_cpu;
 
 	if (event == EV_MOD_NMOESI_LOAD)
 	{
@@ -193,6 +198,7 @@ void mod_handler_nmoesi_load(int event, void *data)
 		new_stack->blocking = 1;
 		new_stack->read = 1;
 		new_stack->retry = stack->retry;
+		new_stack->request_dir = mod_request_up_down;
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK, new_stack, 0);
 		return;
 	}
@@ -269,8 +275,8 @@ void mod_handler_nmoesi_load(int event, void *data)
 
 		/* Set block state to excl/shared depending on return var 'shared'.
 		 * Also set the tag of the block. */
-		cache_set_block(mod->cache, stack->set, stack->way, stack->tag,
-			stack->shared ? cache_block_shared : cache_block_exclusive);
+		cache_set_block(mod->cache, stack->set, stack->way, stack->tag, stack->shared ? cache_block_shared : cache_block_exclusive);
+		atd_set_block(mod->atd_per_thread[thread_id_in_cpu], stack->tag, stack->shared ? cache_block_shared : cache_block_exclusive);
 
 		/* Continue */
 		esim_schedule_event(EV_MOD_NMOESI_LOAD_UNLOCK, stack, 0);
@@ -330,8 +336,12 @@ void mod_handler_nmoesi_store(int event, void *data)
 {
 	struct mod_stack_t *stack = data;
 	struct mod_stack_t *new_stack;
-
 	struct mod_t *mod = stack->mod;
+
+	assert(stack->client_info);
+	assert(stack->client_info->thread);
+
+	const int thread_id_in_cpu = stack->client_info->thread->id_in_cpu;
 
 
 	if (event == EV_MOD_NMOESI_STORE)
@@ -394,6 +404,7 @@ void mod_handler_nmoesi_store(int event, void *data)
 		new_stack->write = 1;
 		new_stack->retry = stack->retry;
 		new_stack->witness_ptr = stack->witness_ptr;
+		new_stack->request_dir = mod_request_up_down;
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK, new_stack, 0);
 
 		/* Set witness variable to NULL so that retries from the same
@@ -475,8 +486,8 @@ void mod_handler_nmoesi_store(int event, void *data)
 		}
 
 		/* Update tag/state and unlock */
-		cache_set_block(mod->cache, stack->set, stack->way,
-			stack->tag, cache_block_modified);
+		cache_set_block(mod->cache, stack->set, stack->way, stack->tag, cache_block_modified);
+		atd_set_block(mod->atd_per_thread[thread_id_in_cpu], stack->tag, cache_block_modified);
 		dir_entry_unlock(mod->dir, stack->set, stack->way);
 
 		/* Impose the access latency before continuing */
@@ -517,8 +528,9 @@ void mod_handler_nmoesi_nc_store(int event, void *data)
 {
 	struct mod_stack_t *stack = data;
 	struct mod_stack_t *new_stack;
-
 	struct mod_t *mod = stack->mod;
+
+	const int thread_id_in_cpu = stack->client_info->thread->id_in_cpu;
 
 
 	if (event == EV_MOD_NMOESI_NC_STORE)
@@ -582,6 +594,7 @@ void mod_handler_nmoesi_nc_store(int event, void *data)
 		new_stack->blocking = 1;
 		new_stack->nc_write = 1;
 		new_stack->retry = stack->retry;
+		new_stack->request_dir = mod_request_up_down;
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK, new_stack, 0);
 		return;
 	}
@@ -721,8 +734,8 @@ void mod_handler_nmoesi_nc_store(int event, void *data)
 
 		/* Set block state to excl/shared depending on return var 'shared'.
 		 * Also set the tag of the block. */
-		cache_set_block(mod->cache, stack->set, stack->way, stack->tag,
-			cache_block_noncoherent);
+		cache_set_block(mod->cache, stack->set, stack->way, stack->tag, cache_block_noncoherent);
+		atd_set_block(mod->atd_per_thread[thread_id_in_cpu], stack->tag, cache_block_noncoherent);
 
 		/* Unlock directory entry */
 		dir_entry_unlock(mod->dir, stack->set, stack->way);
@@ -769,9 +782,12 @@ void mod_handler_nmoesi_prefetch(int event, void *data)
 {
 	struct mod_stack_t *stack = data;
 	struct mod_stack_t *new_stack;
-
 	struct mod_t *mod = stack->mod;
 
+	assert(stack->client_info);
+	assert(stack->client_info->thread);
+
+	const int thread_id_in_cpu = stack->client_info->thread->id_in_cpu;
 
 	if (event == EV_MOD_NMOESI_PREFETCH)
 	{
@@ -836,6 +852,7 @@ void mod_handler_nmoesi_prefetch(int event, void *data)
 		new_stack->prefetch = 1;
 		new_stack->retry = 0;
 		new_stack->witness_ptr = stack->witness_ptr;
+		new_stack->request_dir = mod_request_up_down;
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK, new_stack, 0);
 
 		/* Set witness variable to NULL so that retries from the same
@@ -909,8 +926,8 @@ void mod_handler_nmoesi_prefetch(int event, void *data)
 
 		/* Set block state to excl/shared depending on return var 'shared'.
 		 * Also set the tag of the block. */
-		cache_set_block(mod->cache, stack->set, stack->way, stack->tag,
-			stack->shared ? cache_block_shared : cache_block_exclusive);
+		cache_set_block(mod->cache, stack->set, stack->way, stack->tag, stack->shared ? cache_block_shared : cache_block_exclusive);
+		atd_set_block(mod->atd_per_thread[thread_id_in_cpu], stack->tag, stack->shared ? cache_block_shared : cache_block_exclusive);
 
 		/* Mark the prefetched block as prefetched. This is needed to let the
 		 * prefetcher know about an actual access to this block so that it
@@ -977,9 +994,13 @@ void mod_handler_nmoesi_find_and_lock(int event, void *data)
 	struct mod_stack_t *stack = data;
 	struct mod_stack_t *ret = stack->ret_stack;
 	struct mod_stack_t *new_stack;
-
 	struct mod_t *mod = stack->mod;
 
+	assert(stack->request_dir);
+	assert(stack->client_info);
+	assert(stack->client_info->thread);
+
+	const int thread_id_in_cpu = stack->client_info->thread->id_in_cpu;
 
 	if (event == EV_MOD_NMOESI_FIND_AND_LOCK)
 	{
@@ -993,6 +1014,7 @@ void mod_handler_nmoesi_find_and_lock(int event, void *data)
 
 		/* If this stack has already been assigned a way, keep using it */
 		stack->way = ret->way;
+		stack->atd_way = ret->atd_way;
 
 		/* Get a port */
 		mod_lock_port(mod, stack, EV_MOD_NMOESI_FIND_AND_LOCK_PORT);
@@ -1018,6 +1040,10 @@ void mod_handler_nmoesi_find_and_lock(int event, void *data)
 		/* Look for block. */
 		stack->hit = mod_find_block(mod, stack->addr, &stack->set,
 			&stack->way, &stack->tag, &stack->state);
+
+		/* Look for block in the ATD */
+		if (stack->request_dir == mod_request_up_down)
+			stack->atd_hit = atd_find_block(mod->atd_per_thread[thread_id_in_cpu], stack->addr, NULL, NULL, NULL, NULL);
 
 		/* Debug */
 		if (stack->hit)
@@ -1168,6 +1194,8 @@ void mod_handler_nmoesi_find_and_lock(int event, void *data)
 		 * Also, update LRU counters here. */
 		cache_set_transient_tag(mod->cache, stack->set, stack->way, stack->tag);
 		cache_access_block(mod->cache, stack->set, stack->way);
+		if (stack->request_dir == mod_request_up_down)
+			atd_access_block(mod->atd_per_thread[thread_id_in_cpu], stack->tag);
 
 		/* Access latency */
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK_ACTION, stack, mod->dir_latency);
@@ -1237,14 +1265,19 @@ void mod_handler_nmoesi_find_and_lock(int event, void *data)
 		if (mod->kind == mod_kind_main_memory && !stack->state)
 		{
 			stack->state = cache_block_exclusive;
-			cache_set_block(mod->cache, stack->set, stack->way,
-				stack->tag, stack->state);
+			cache_set_block(mod->cache, stack->set, stack->way, stack->tag, stack->state);
+			atd_set_block(mod->atd_per_thread[thread_id_in_cpu], stack->tag, stack->state);
 		}
+
+
+		/* TODO: COUNT STATS HERE */
+
 
 		/* Return */
 		ret->err = 0;
 		ret->set = stack->set;
 		ret->way = stack->way;
+		ret->atd_way = stack->atd_way;
 		ret->state = stack->state;
 		ret->tag = stack->tag;
 		mod_stack_return(stack);
@@ -1398,6 +1431,7 @@ void mod_handler_nmoesi_evict(int event, void *data)
 		new_stack->blocking = 0;
 		new_stack->write = 1;
 		new_stack->retry = 0;
+		new_stack->request_dir = mod_request_up_down;
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK, new_stack, 0);
 		return;
 	}
@@ -1617,6 +1651,11 @@ void mod_handler_nmoesi_read_request(int event, void *data)
 
 	uint32_t dir_entry_tag, z;
 
+	assert(stack->client_info);
+	assert(stack->client_info->thread);
+
+	const int thread_id_in_cpu = stack->client_info->thread->id_in_cpu;
+
 	if (event == EV_MOD_NMOESI_READ_REQUEST)
 	{
 		struct net_t *net;
@@ -1678,6 +1717,7 @@ void mod_handler_nmoesi_read_request(int event, void *data)
 		new_stack->blocking = stack->request_dir == mod_request_down_up;
 		new_stack->read = 1;
 		new_stack->retry = 0;
+		new_stack->request_dir = stack->request_dir;
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK, new_stack, 0);
 		return;
 	}
@@ -1831,8 +1871,8 @@ void mod_handler_nmoesi_read_request(int event, void *data)
 		/* Set block state to excl/shared depending on the return value 'shared'
 		 * that comes from a read request into the next cache level.
 		 * Also set the tag of the block. */
-		cache_set_block(target_mod->cache, stack->set, stack->way, stack->tag,
-			stack->shared ? cache_block_shared : cache_block_exclusive);
+		cache_set_block(target_mod->cache, stack->set, stack->way, stack->tag, stack->shared ? cache_block_shared : cache_block_exclusive);
+		atd_set_block(target_mod->atd_per_thread[thread_id_in_cpu], stack->tag, stack->shared ? cache_block_shared : cache_block_exclusive);
 		esim_schedule_event(EV_MOD_NMOESI_READ_REQUEST_UPDOWN_FINISH, stack, 0);
 		return;
 	}
@@ -2257,6 +2297,11 @@ void mod_handler_nmoesi_write_request(int event, void *data)
 
 	uint32_t dir_entry_tag, z;
 
+	assert(stack->client_info);
+	assert(stack->client_info->thread);
+
+	const int thread_id_in_cpu = stack->client_info->thread->id_in_cpu;
+
 
 	if (event == EV_MOD_NMOESI_WRITE_REQUEST)
 	{
@@ -2325,6 +2370,7 @@ void mod_handler_nmoesi_write_request(int event, void *data)
 		new_stack->blocking = stack->request_dir == mod_request_down_up;
 		new_stack->write = 1;
 		new_stack->retry = 0;
+		new_stack->request_dir = stack->request_dir;
 		esim_schedule_event(EV_MOD_NMOESI_FIND_AND_LOCK, new_stack, 0);
 		return;
 	}
@@ -2459,8 +2505,8 @@ void mod_handler_nmoesi_write_request(int event, void *data)
 		}
 
 		/* Set state to exclusive */
-		cache_set_block(target_mod->cache, stack->set, stack->way,
-			stack->tag, cache_block_exclusive);
+		cache_set_block(target_mod->cache, stack->set, stack->way, stack->tag, cache_block_exclusive);
+		atd_set_block(target_mod->atd_per_thread[thread_id_in_cpu], stack->tag, cache_block_exclusive);
 
 		/* If blocks were sent directly to the peer, the reply size would
 		 * have been decreased.  Based on the final size, we can tell whether
