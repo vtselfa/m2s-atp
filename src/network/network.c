@@ -98,7 +98,7 @@ static void net_config_route_create(struct net_t *net, struct config_t *config, 
 						net_get_node_by_name(net,
 								nxt_node_name);
 
-				if (name_check == 1)
+				if (name_check != 0)
 				{
 					if (nxt_node_r == NULL)
 						fatal("Network %s:%s: Invalid node Name.\n %s",
@@ -952,7 +952,7 @@ void net_add_bus_port(struct net_t *net, struct net_node_t *src_node,
 	/* Checks */
 	assert(src_node->net == net);
 	assert(dst_node->net == net);
-	struct net_buffer_t *buffer;
+	struct net_buffer_t *buffer = NULL;
 
 	/* Condition 1: No support for direct BUS to BUS connection */
 	if (src_node->kind == net_node_bus && dst_node->kind == net_node_bus)
@@ -991,7 +991,12 @@ void net_add_bus_port(struct net_t *net, struct net_node_t *src_node,
 		buffer->bus = list_get(dst_node->bus_lane_list, 0);
 	}
 
-	/* We make the buffer as type port for clarification and use in event 
+	else
+	{
+		fatal("network: unsuported condition in %s", __FUNCTION__);
+	}
+
+	/* We make the buffer as type port for clarification and use in event
 	 * handler */
 	buffer->kind = net_buffer_bus;
 
